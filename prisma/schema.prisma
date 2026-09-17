@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Organization {
+  id                   String   @id @default(cuid())
+  name                 String
+  slug                 String   @unique
+  city                 String?
+  plan                 String   @default("starter")
+  seatLimit            Int      @default(50)
+  subscriptionStatus   String   @default("trialing")
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  createdAt            DateTime @default(now())
+
+  users       User[]
+  students    Student[]
+  staff       Staff[]
+  attendances Attendance[]
+  grades      Grade[]
+  fees        Fee[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String?
+  name           String
+  role           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+
+  tokens AccountToken[]
+
+  @@index([organizationId])
+}
+
+model AccountToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  purpose   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([tokenHash])
+}
+
+model Student {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  grade          String
+  section        String
+  guardianName   String
+  status         String   @default("active")
+  gpa            Float    @default(0)
+  attendancePct  Float    @default(0)
+  createdAt      DateTime @default(now())
+
+  attendances Attendance[]
+  grades      Grade[]
+  fees        Fee[]
+
+  @@index([organizationId])
+}
+
+model Staff {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  subject        String
+  classes        Int      @default(0)
+  rating         Float    @default(0)
+
+  @@index([organizationId])
+}
+
+model Attendance {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id])
+  date           DateTime @default(now())
+  status         String
+
+  @@index([organizationId])
+}
+
+model Grade {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id])
+  subject        String
+  assignment     String
+  score          Float
+  maxScore       Float
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+}
+
+model Fee {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id])
+  term           String
+  amountDue      Float
+  amountPaid     Float    @default(0)
+  status         String   @default("unpaid")
+
+  @@index([organizationId])
+}
